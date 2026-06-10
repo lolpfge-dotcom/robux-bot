@@ -1,0 +1,17 @@
+# Save to /etc/systemd/system/robux-bot.service on the server.
+# Adjust the paths/user if you didn't use /home/ubuntu/robux-bot.
+[Unit]
+Description=Robux Payment Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/robux-bot
+ExecStart=/home/ubuntu/robux-bot/venv/bin/python bot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
