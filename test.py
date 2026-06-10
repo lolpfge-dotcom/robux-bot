@@ -13,6 +13,7 @@ import json
 import asyncio
 
 import aiohttp
+from curl_cffi.requests import AsyncSession
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -43,38 +44,39 @@ async def check_env():
         print(f"  {OK if val else INFO} {name} {'set' if val else '(optional, not set)'}")
 
 
-async def check_roblox(session):
+async def check_roblox():
     print("\n== Roblox ==")
     if not ROBLOX_COOKIE:
         print(f"  {BAD} no cookie, skipping")
         return
-    # 1) cookie valid + who am I
-    async with session.get("https://users.roblox.com/v1/users/authenticated",
-                           headers={"Cookie": f".ROBLOSECURITY={ROBLOX_COOKIE}"}) as r:
-        if r.status != 200:
-            print(f"  {BAD} cookie invalid (HTTP {r.status}) — refresh ROBLOX_COOKIE")
+    cookie = {"Cookie": f".ROBLOSECURITY={ROBLOX_COOKIE}"}
+    async with AsyncSession(impersonate="chrome", timeout=20) as s:
+        # 1) cookie valid + who am I
+        r = await s.get("https://users.roblox.com/v1/users/authenticated", headers=cookie)
+        if r.status_code != 200:
+            print(f"  {BAD} cookie invalid (HTTP {r.status_code}) — refresh ROBLOX_COOKIE")
             return
-        me = await r.json()
+        me = r.json()
         print(f"  {OK} cookie valid — logged in as {me['name']} (id {me['id']})")
         if ROBLOX_USER_ID and str(me["id"]) != str(ROBLOX_USER_ID):
             print(f"  {BAD} ROBLOX_USER_ID ({ROBLOX_USER_ID}) != logged-in id ({me['id']})")
         else:
             print(f"  {OK} ROBLOX_USER_ID matches")
 
-    # 2) can we read the sales feed
-    url = (f"https://economy.roblox.com/v2/users/{ROBLOX_USER_ID}/transactions"
-           f"?limit=5&transactionType=Sale")
-    async with session.get(url, headers={"Cookie": f".ROBLOSECURITY={ROBLOX_COOKIE}"}) as r:
-        if r.status == 200:
-            n = len((await r.json()).get("data", []))
+        # 2) can we read the sales feed
+        url = (f"https://economy.roblox.com/v2/users/{ROBLOX_USER_ID}/transactions"
+               f"?limit=5&transactionType=Sale")
+        r = await s.get(url, headers=cookie)
+        if r.status_code == 200:
+            n = len(r.json().get("data", []))
             print(f"  {OK} sales feed readable ({n} recent sale(s) visible)")
         else:
-            print(f"  {BAD} sales feed not readable (HTTP {r.status})")
+            print(f"  {BAD} sales feed not readable (HTTP {r.status_code})")
 
-    # 3) username resolve works
-    async with session.post("https://users.roblox.com/v1/usernames/users",
-                            json={"usernames": ["Roblox"], "excludeBannedUsers": False}) as r:
-        ok = r.status == 200 and (await r.json()).get("data")
+        # 3) username resolve works
+        r = await s.post("https://users.roblox.com/v1/usernames/users",
+                         json={"usernames": ["Roblox"], "excludeBannedUsers": False})
+        ok = r.status_code == 200 and r.json().get("data")
         print(f"  {OK if ok else BAD} username resolve works")
 
 
@@ -121,9 +123,9 @@ def make_mock():
 
 
 async def main():
+    await check_env()
+    await check_roblox()
     async with aiohttp.ClientSession() as session:
-        await check_env()
-        await check_roblox(session)
         await check_sellauth(session)
     print("\nDone.")
 
