@@ -1,0 +1,23 @@
+{
+  "example_key": {
+    "name": "Example License Key",
+    "gamepass_id": 123456789,
+    "price_robux": 143,
+    "sellauth_product_id": 762,
+    "deliver_message": "Thanks for your purchase at wezzy.store! 🎉",
+    "give_role_id": null,
+    "stock": [
+      "KEY-AAAA-1111",
+      "KEY-BBBB-2222"
+    ]
+  },
+  "example_role": {
+    "name": "VIP Role",
+    "gamepass_id": 987654321,
+    "price_robux": 71,
+    "sellauth_product_id": 763,
+    "deliver_message": "Welcome to the VIP area!",
+    "give_role_id": 111111111111111111,
+    "stock": null
+  }
+}
